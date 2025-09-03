@@ -1,1 +1,1 @@
-# Apenas testes
+# Criação do Bot de wpp usando Evolution API para a comunidade GoIAs
