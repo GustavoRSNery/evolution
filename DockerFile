@@ -1,0 +1,30 @@
+# --- Fase 1: Imagem Base e Instalação de Dependências ---
+# Usamos uma imagem oficial do Python, magra e otimizada (slim).
+FROM python:3.12-slim
+
+# Define o diretório de trabalho dentro do contêiner.
+# Todos os comandos a seguir serão executados a partir deste diretório.
+WORKDIR /app
+
+# Copia apenas o ficheiro de dependências primeiro.
+# O Docker armazena esta camada em cache. Se o ficheiro não mudar,
+# o Docker reutiliza o cache em vez de reinstalar tudo, acelerando o build.
+COPY requirements.txt .
+
+# Instala as dependências do projeto.
+RUN pip install --no-cache-dir -r requirements.txt
+
+# --- Fase 2: Copiar o Código da Aplicação ---
+# Copia todo o resto do código do seu projeto para o diretório de trabalho no contêiner.
+COPY . .
+
+# --- Fase 3: Expor a Porta e Executar a Aplicação ---
+# Informa ao Docker que o contêiner ouvirá na porta 8000.
+EXPOSE 8000
+
+# O comando para iniciar a aplicação quando o contêiner for executado.
+# - "uvicorn": o servidor ASGI.
+# - "main:app": diz ao uvicorn para encontrar o objeto 'app' no ficheiro 'main.py'.
+# - "--host 0.0.0.0": permite que a aplicação seja acessível de fora do contêiner.
+# - "--port 8000": a porta onde o uvicorn irá rodar dentro do contêiner.
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

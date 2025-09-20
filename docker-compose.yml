@@ -1,10 +1,46 @@
-services:
+# Define a rede customizada para os nossos serviços.
+# Isto permite que os contêineres se comuniquem uns com os outros
+# usando os seus nomes de serviço como hostname.
+networks:
+  whatsapp-net:
+    driver: bridge
 
+# Define os serviços (contêineres) que compõem a nossa aplicação.
+services:
+  # --- O NOSSO NOVO SERVIÇO DO BOT ---
+  bot-whatsapp:
+    # 'build: .' instrui o Compose a construir a imagem a partir do
+    # Dockerfile localizado no diretório atual (./).
+    build: .
+    # Nome do contêiner para fácil identificação.
+    container_name: bot-whatsapp-service
+    # 'env_file' carrega as variáveis de ambiente do ficheiro .env.
+    env_file:
+      - .env
+    # Mapeia a porta 8000 do contêiner para a porta 8000 da sua máquina host.
+    # Assim, você pode aceder à API do bot via http://localhost:8000.
+    ports:
+      - "8000:8000"
+    # Monta o diretório atual (código fonte) dentro do contêiner em /app.
+    # Isto é FANTÁSTICO para desenvolvimento: qualquer alteração no seu código
+    # na máquina host será refletida instantaneamente dentro do contêiner.
+    volumes:
+      - ./:/app
+    # Conecta o serviço à nossa rede customizada.
+    networks:
+      - whatsapp-net
+    # Garante que o serviço da Evolution API seja iniciado antes do nosso bot.
+    depends_on:
+      - evolution-api
+    # Reinicia o contêiner automaticamente em caso de falha.
+    restart: unless-stopped
+
+  # --- SERVIÇOS EXISTENTES DA EVOLUTION API ---
   evolution-api:
     container_name: evolution_api
     image: atendai/evolution-api:v2.2.3
-    environment:
-      CONFIG_SESSION_PHONE_VERSION: 2.3000.1020885143 # atualizar o version da api do wpp para a versao estavel
+    # environment:
+    #   CONFIG_SESSION_PHONE_VERSION: 2.3000.1020885143 # atualizar o version da api do wpp para a versao estavel
     restart: always
     ports:
       - "8080:8080"
@@ -41,6 +77,7 @@ services:
       - 6379:6379
 
 volumes:
+  ./:
   evolution_instances:
   postgres_data:
   redis:
