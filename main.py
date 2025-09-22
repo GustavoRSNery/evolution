@@ -14,7 +14,7 @@ Para rodar esta aplicação:
 """
 import logging
 from fastapi import FastAPI
-from api.v1.api import api_router  # Importa o agregador de rotas da v1
+from src.api.v1.api import api_router  # Importa o agregador de rotas da v1
 
 # --- Configuração do Logging ---
 # Configura o logging para exibir mensagens de nível INFO e acima.
@@ -37,7 +37,7 @@ app = FastAPI(
 # Inclui todas as rotas definidas no 'api_router' (de api/v1/api.py)
 # com o prefixo global '/v1'.
 # Isso significa que a URL final do nosso webhook será:
-# [URL_DO_NGROK] + /v1 + /webhook + /evolution
+# [URL_DO_NGROK] + /v1 + /webhook + /inspect
 app.include_router(api_router, prefix="/v1")
 
 # --- Rota Raiz (Health Check) ---
@@ -52,4 +52,3 @@ def read_root():
         "docs_url": "/docs"
     }
 
-# Para executar, use o comando: uvicorn main:app --reload

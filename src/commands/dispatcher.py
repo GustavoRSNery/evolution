@@ -6,9 +6,9 @@ o payload validado, analisa o conteúdo da mensagem e decide qual
 função do módulo 'handlers' deve ser chamada.
 """
 import logging
-from models.evolution import WebhookPayload
-from commands import handlers
-from infra.config import settings
+from src.models.evolution import WebhookPayload
+from src.commands import handlers
+from src.infra.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 # Adicionar um novo comando é tão simples quanto adicionar uma nova entrada aqui.
 COMMANDS_MAP = {
     "/ping": handlers.handle_ping,
-    "/excluir": handlers.handle_delete_message,
+    # "/excluir": handlers.handle_delete_message,
 }
 
 async def dispatch(payload: WebhookPayload):
@@ -45,6 +45,8 @@ async def dispatch(payload: WebhookPayload):
     # --- Lógica de Roteamento ---
     # Verifica se o texto começa com um prefixo de comando conhecido
     command_word = text.split()[0] # Pega a primeira palavra, ex: "/ping"
+
+    # Ver se da pra adaptar com um Parser futuramente ------------------------------------------------------------------------------
 
     handler = COMMANDS_MAP.get(command_word)
 

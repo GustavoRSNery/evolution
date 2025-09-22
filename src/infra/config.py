@@ -24,7 +24,8 @@ class Settings(BaseSettings):
 
     # Configurações da Evolution API
     EVOLUTION_API_URL: str
-    EVOLUTION_API_KEY: str
+    AUTHENTICATION_API_KEY: str
+    INTERNAL_API_URL: str
 
     # Configurações do Bot
     TARGET_GROUP_ID: str

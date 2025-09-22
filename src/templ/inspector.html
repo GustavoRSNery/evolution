@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inspetor de Payloads - Bot WhatsApp</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://rsms.me/">
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+    <style>
+        :root { font-family: 'Inter', sans-serif; }
+        @supports (font-variation-settings: normal) {
+            :root { font-family: 'Inter var', sans-serif; }
+        }
+        .payload-card {
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+        }
+        .payload-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        /* Animação de entrada */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="mb-8 text-center">
+            <h1 class="text-4xl font-bold text-gray-900">🕵️ Inspetor de Webhooks</h1>
+            <p class="text-lg text-gray-600 mt-2">Payloads recebidos em tempo real no endpoint <code>/v1/webhook/inspect</code>.</p>
+        </header>
+
+        <div class="flex flex-col sm:flex-row justify-between items-center mb-6 bg-white p-4 rounded-lg shadow-sm sticky top-4 z-10">
+            <div class="flex items-center space-x-3 mb-4 sm:mb-0">
+                <input type="checkbox" id="autoRefresh" class="h-5 w-5 rounded text-indigo-600 focus:ring-indigo-500" checked>
+                <label for="autoRefresh" class="font-medium">Atualização Automática</label>
+                <span id="countdown" class="text-sm text-gray-500 w-8"></span>
+            </div>
+            <button id="refreshButton" class="w-full sm:w-auto bg-indigo-600 text-white font-semibold py-2 px-5 rounded-lg shadow hover:bg-indigo-700 transition duration-300 flex items-center justify-center space-x-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 110 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.885-.666A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566z" clip-rule="evenodd" /></svg>
+                <span>Atualizar Agora</span>
+            </button>
+        </div>
+
+        <main id="payloadsContainer" class="space-y-6">
+            <!-- Payloads serão inseridos aqui -->
+        </main>
+    </div>
+
+    <script>
+        const payloadsContainer = document.getElementById('payloadsContainer');
+        const refreshButton = document.getElementById('refreshButton');
+        const autoRefreshCheckbox = document.getElementById('autoRefresh');
+        const countdownSpan = document.getElementById('countdown');
+        
+        let autoRefreshInterval;
+        let countdownInterval;
+        const REFRESH_INTERVAL_SECONDS = 5;
+        let countdownValue = REFRESH_INTERVAL_SECONDS;
+
+        const fetchPayloads = async () => {
+            try {
+                const response = await fetch('/v1/webhook/inspect/history');
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const data = await response.json();
+                renderPayloads(data);
+            } catch (error) {
+                console.error("Erro ao buscar payloads:", error);
+                payloadsContainer.innerHTML = `<div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg shadow-sm" role="alert"><p class="font-bold">Erro de Conexão</p><p>Não foi possível buscar o histórico de payloads. Verifique se o servidor está rodando.</p></div>`;
+            }
+        };
+
+        const renderPayloads = (payloads) => {
+            if (payloads.length === 0) {
+                payloadsContainer.innerHTML = `<div class="text-center py-10 bg-white rounded-lg shadow-sm"><p class="text-gray-500">Nenhum payload recebido ainda. Envie um webhook para a URL de inspeção.</p></div>`;
+                return;
+            }
+            payloadsContainer.innerHTML = payloads.map(entry => {
+                const timestamp = new Date(entry.timestamp);
+                const event = entry.payload.event || 'Evento Desconhecido';
+                const instance = entry.payload.instance || 'N/A';
+                const colorClass = event === 'MESSAGES_UPSERT' ? 'border-green-500' : 'border-blue-500';
+
+                return `
+                    <div class="payload-card bg-white rounded-lg shadow-sm overflow-hidden ${colorClass} fade-in">
+                        <div class="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+                            <div>
+                                <h2 class="text-lg font-bold text-gray-800">${event}</h2>
+                                <p class="text-sm text-gray-500">Instância: <span class="font-semibold">${instance}</span></p>
+                            </div>
+                            <span class="text-xs text-gray-400">${timestamp.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</span>
+                        </div>
+                        <div class="p-4 bg-gray-800 text-green-300 text-sm overflow-x-auto">
+                            <pre><code>${JSON.stringify(entry.payload, null, 2)}</code></pre>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        };
+
+        const startCountdown = () => {
+            clearInterval(countdownInterval);
+            countdownValue = REFRESH_INTERVAL_SECONDS;
+            countdownSpan.textContent = `(${countdownValue}s)`;
+            countdownInterval = setInterval(() => {
+                countdownValue--;
+                countdownSpan.textContent = `(${countdownValue}s)`;
+                if (countdownValue <= 0) clearInterval(countdownInterval);
+            }, 1000);
+        };
+        
+        const startAutoRefresh = () => {
+            if (autoRefreshCheckbox.checked && !autoRefreshInterval) {
+                fetchPayloads();
+                startCountdown();
+                autoRefreshInterval = setInterval(() => {
+                    fetchPayloads();
+                    startCountdown();
+                }, REFRESH_INTERVAL_SECONDS * 1000);
+            }
+        };
+
+        const stopAutoRefresh = () => {
+            clearInterval(autoRefreshInterval);
+            clearInterval(countdownInterval);
+            autoRefreshInterval = null;
+            countdownSpan.textContent = '';
+        };
+
+        refreshButton.addEventListener('click', () => {
+            fetchPayloads();
+            if (autoRefreshCheckbox.checked) {
+                stopAutoRefresh();
+                startAutoRefresh();
+            }
+        });
+
+        autoRefreshCheckbox.addEventListener('change', () => {
+            if (autoRefreshCheckbox.checked) {
+                startAutoRefresh();
+            } else {
+                stopAutoRefresh();
+            }
+        });
+
+        // Initial load
+        startAutoRefresh();
+    </script>
+</body>
+</html>
